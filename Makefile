@@ -80,8 +80,10 @@ KERNEL_LD = arch/$(ARCH)/kernel/linker.ld
 KERNEL_IMAGE = $(BUILD_PATH)/nativeos.elf
 
 # These variables are used when building the distribution disk.
+NATIVE_INITRD = $(BUILD_PATH)/initrd.tar
 NATIVE_DISK = $(BUILD_PATH)/nativeos.iso
 NATIVE_DISK_KERNEL = nativeos.exe
+NATIVE_DISK_INITRD = initrd.tar
 
 # It might not work on some platforms unless this is done.
 GRUB_ROOT = $(shell dirname `which grub-mkrescue`)/..
@@ -110,10 +112,15 @@ $(KERNEL_IMAGE): $(KERNEL_OBJS)
 $(KLIBC_LIBRARY): $(KLIBC_SOURCES)
 	make -C libc
 
+# Builds the init image.
+$(NATIVE_INITRD): tools/initrd
+	(cd tools/initrd && tar -cvf ../../$(NATIVE_INITRD) *)
+
 # Builds CD-ROM.
-$(NATIVE_DISK): $(KERNEL_IMAGE)
+$(NATIVE_DISK): $(KERNEL_IMAGE) $(NATIVE_INITRD)
 	rm -rf $(BUILD_PATH)/cdrom
 	cp -R tools/cdrom $(BUILD_PATH)
+	cp $(NATIVE_INITRD) $(BUILD_PATH)/cdrom/boot/$(NATIVE_DISK_INITRD)
 	cp $(KERNEL_IMAGE) $(BUILD_PATH)/cdrom/boot/$(NATIVE_DISK_KERNEL)
 	grub-mkrescue -d $(GRUB_ROOT)/lib/grub/i386-pc -o $@ $(BUILD_PATH)/cdrom
 
